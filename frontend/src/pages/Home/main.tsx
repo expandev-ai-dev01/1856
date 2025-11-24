@@ -1,6 +1,9 @@
 import { Button } from '@/core/components/button';
+import { useNavigation } from '@/core/hooks/useNavigation';
 
 function HomePage() {
+  const { navigate } = useNavigation();
+
   return (
     <div className="flex flex-col items-center justify-center space-y-8 py-12">
       <div className="text-center space-y-4">
@@ -17,7 +20,7 @@ function HomePage() {
         <Button size="lg" onClick={() => console.log('Start Timer')}>
           Start Timer
         </Button>
-        <Button variant="outline" size="lg" onClick={() => console.log('View History')}>
+        <Button variant="outline" size="lg" onClick={() => navigate('/history')}>
           View History
         </Button>
       </div>

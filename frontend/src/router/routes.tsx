@@ -9,6 +9,9 @@ const HomePage = lazy(() =>
 const SettingsPage = lazy(() =>
   import('@/pages/Settings').then((module) => ({ default: module.SettingsPage }))
 );
+const HistoryPage = lazy(() =>
+  import('@/pages/History').then((module) => ({ default: module.HistoryPage }))
+);
 const NotFoundPage = lazy(() =>
   import('@/pages/NotFound').then((module) => ({ default: module.NotFoundPage }))
 );
@@ -35,6 +38,10 @@ const routes = createBrowserRouter([
       {
         path: 'settings',
         element: <SettingsPage />,
+      },
+      {
+        path: 'history',
+        element: <HistoryPage />,
       },
       {
         path: '*',
