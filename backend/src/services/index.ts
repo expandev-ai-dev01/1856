@@ -1,3 +1,3 @@
 // Services export point
 // Export all service modules here
-export {};
+export * as timerSettingsService from './timerSettings';

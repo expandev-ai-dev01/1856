@@ -6,6 +6,9 @@ import { MainLayout } from '@/layouts/MainLayout';
 const HomePage = lazy(() =>
   import('@/pages/Home').then((module) => ({ default: module.HomePage }))
 );
+const SettingsPage = lazy(() =>
+  import('@/pages/Settings').then((module) => ({ default: module.SettingsPage }))
+);
 const NotFoundPage = lazy(() =>
   import('@/pages/NotFound').then((module) => ({ default: module.NotFoundPage }))
 );
@@ -28,6 +31,10 @@ const routes = createBrowserRouter([
       {
         index: true,
         element: <HomePage />,
+      },
+      {
+        path: 'settings',
+        element: <SettingsPage />,
       },
       {
         path: '*',

@@ -1,8 +1,10 @@
 import { ErrorBoundary } from '@/router/error-boundary';
 import { useNavigation } from '@/core/hooks/useNavigation';
-import { Outlet } from 'react-router-dom';
+import { Outlet, Link } from 'react-router-dom';
 import { Suspense } from 'react';
 import { LoadingSpinner } from '@/core/components/loading-spinner';
+import { Button } from '@/core/components/button';
+import { Settings } from 'lucide-react';
 
 function MainLayout() {
   const { location } = useNavigation();
@@ -12,8 +14,20 @@ function MainLayout() {
       <div className="bg-background relative flex min-h-screen flex-col font-sans antialiased">
         <header className="border-b px-6 py-4">
           <div className="container mx-auto flex items-center justify-between">
-            <h1 className="text-xl font-bold text-primary">Pomo</h1>
-            {/* Navigation items will go here */}
+            <Link
+              to="/"
+              className="text-xl font-bold text-primary hover:opacity-80 transition-opacity"
+            >
+              Pomo
+            </Link>
+            <nav>
+              <Link to="/settings">
+                <Button variant="ghost" size="sm" className="gap-2">
+                  <Settings className="h-4 w-4" />
+                  Settings
+                </Button>
+              </Link>
+            </nav>
           </div>
         </header>
         <main className="flex h-full min-h-fit flex-1">
