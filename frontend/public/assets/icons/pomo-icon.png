@@ -1,0 +1,4 @@
+# This is a placeholder for the icon file.
+# In a real implementation, you would need to provide an actual PNG icon file.
+# For now, this serves as a reference that the file should exist at this path.
+# Recommended size: 192x192 or 512x512 pixels for PWA compatibility.

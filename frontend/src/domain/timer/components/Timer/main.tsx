@@ -11,15 +11,19 @@ import { useTimerSettings } from '../../hooks/useTimerSettings';
 import { sessionStartSchema, type SessionStartFormData } from '../../validations/session';
 import type { TimerMode, TimerStatus } from './types';
 import { useSessionHistory } from '@/domain/history';
+import { useNotificationSystem, VisualAlert } from '@/domain/notifications';
+import type { NotificationContent, NotificationType } from '@/domain/notifications';
 
 function Timer() {
   const { settings } = useTimerSettings();
   const { createSession } = useSessionHistory();
+  const { triggerNotification } = useNotificationSystem();
 
   const [mode, setMode] = useState<TimerMode>('focus');
   const [status, setStatus] = useState<TimerStatus>('idle');
   const [timeLeft, setTimeLeft] = useState(25 * 60);
   const [currentSessionDescription, setCurrentSessionDescription] = useState<string>('');
+  const [visualAlertContent, setVisualAlertContent] = useState<NotificationContent | null>(null);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const startTimeRef = useRef<string | null>(null);
@@ -60,12 +64,20 @@ function Timer() {
     };
   }, [status, timeLeft]);
 
-  const handleStart = (data: SessionStartFormData) => {
+  const handleStart = async (data: SessionStartFormData) => {
     const sanitizedDescription = data.description ? DOMPurify.sanitize(data.description) : '';
 
     setCurrentSessionDescription(sanitizedDescription);
     startTimeRef.current = new Date().toISOString();
     setStatus('running');
+
+    // Trigger start notification
+    const notificationType: NotificationType =
+      mode === 'focus' ? 'inicio_pomodoro' : 'inicio_intervalo';
+    const content = await triggerNotification(notificationType);
+    if (content) {
+      setVisualAlertContent(content);
+    }
   };
 
   const handlePause = () => {
@@ -88,6 +100,13 @@ function Timer() {
   const handleComplete = async () => {
     setStatus('idle');
 
+    // Trigger completion notification
+    const notificationType: NotificationType = mode === 'focus' ? 'fim_pomodoro' : 'fim_intervalo';
+    const content = await triggerNotification(notificationType);
+    if (content) {
+      setVisualAlertContent(content);
+    }
+
     if (mode === 'focus' && startTimeRef.current && settings) {
       try {
         await createSession({
@@ -95,13 +114,12 @@ function Timer() {
           startTimestamp: startTimeRef.current,
           durationMinutes: settings.focusDuration,
         });
-        // Optional: Play sound or show notification
       } catch (error) {
         console.error('Failed to save session:', error);
       }
     }
 
-    // Switch modes automatically or wait for user
+    // Switch modes automatically
     if (mode === 'focus') {
       setMode('shortBreak');
     } else {
@@ -129,140 +147,154 @@ function Timer() {
   };
 
   return (
-    <div className="flex w-full flex-col items-center space-y-8">
-      <div className="flex gap-2 rounded-lg bg-muted p-1">
-        <Button
-          variant={mode === 'focus' ? 'default' : 'ghost'}
-          size="sm"
-          onClick={() => {
-            if (status === 'idle') setMode('focus');
-          }}
-          disabled={status !== 'idle'}
-          className="w-24"
-        >
-          Foco
-        </Button>
-        <Button
-          variant={mode === 'shortBreak' ? 'default' : 'ghost'}
-          size="sm"
-          onClick={() => {
-            if (status === 'idle') setMode('shortBreak');
-          }}
-          disabled={status !== 'idle'}
-          className="w-24"
-        >
-          Curta
-        </Button>
-        <Button
-          variant={mode === 'longBreak' ? 'default' : 'ghost'}
-          size="sm"
-          onClick={() => {
-            if (status === 'idle') setMode('longBreak');
-          }}
-          disabled={status !== 'idle'}
-          className="w-24"
-        >
-          Longa
-        </Button>
+    <>
+      <div className="flex w-full flex-col items-center space-y-8">
+        <div className="flex gap-2 rounded-lg bg-muted p-1">
+          <Button
+            variant={mode === 'focus' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => {
+              if (status === 'idle') setMode('focus');
+            }}
+            disabled={status !== 'idle'}
+            className="w-24"
+          >
+            Foco
+          </Button>
+          <Button
+            variant={mode === 'shortBreak' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => {
+              if (status === 'idle') setMode('shortBreak');
+            }}
+            disabled={status !== 'idle'}
+            className="w-24"
+          >
+            Curta
+          </Button>
+          <Button
+            variant={mode === 'longBreak' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => {
+              if (status === 'idle') setMode('longBreak');
+            }}
+            disabled={status !== 'idle'}
+            className="w-24"
+          >
+            Longa
+          </Button>
+        </div>
+
+        <Card className="w-full max-w-md overflow-hidden border-2">
+          <div
+            className="h-1 bg-primary transition-all duration-1000 ease-linear"
+            style={{ width: `${getProgress()}%` }}
+          />
+          <CardHeader className="pb-2 text-center">
+            <div className="text-8xl font-bold tracking-tighter tabular-nums text-primary">
+              {formatTime(timeLeft)}
+            </div>
+            <p className="text-muted-foreground font-medium uppercase tracking-widest">
+              {status === 'idle'
+                ? 'Pronto para iniciar'
+                : status === 'paused'
+                ? 'Pausado'
+                : mode === 'focus'
+                ? 'Focando'
+                : 'Descansando'}
+            </p>
+          </CardHeader>
+
+          <CardContent className="space-y-6">
+            {status === 'idle' && mode === 'focus' && (
+              <Form {...form}>
+                <form
+                  id="timer-form"
+                  onSubmit={form.handleSubmit(handleStart)}
+                  className="space-y-4"
+                >
+                  <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <Input
+                            placeholder="No que você vai trabalhar?"
+                            className="text-center text-lg h-12"
+                            autoComplete="off"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </form>
+              </Form>
+            )}
+
+            {status !== 'idle' && mode === 'focus' && currentSessionDescription && (
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground">Trabalhando em:</p>
+                <p className="text-lg font-medium">{currentSessionDescription}</p>
+              </div>
+            )}
+          </CardContent>
+
+          <CardFooter className="flex justify-center gap-4 pb-8">
+            {status === 'idle' ? (
+              <Button
+                size="lg"
+                className="h-14 w-32 rounded-full text-xl shadow-lg"
+                form={mode === 'focus' ? 'timer-form' : undefined}
+                onClick={mode !== 'focus' ? () => handleStart({ description: '' }) : undefined}
+              >
+                <Play className="mr-2 h-6 w-6 fill-current" />
+                Iniciar
+              </Button>
+            ) : (
+              <>
+                {status === 'running' ? (
+                  <Button
+                    size="lg"
+                    variant="secondary"
+                    className="h-14 w-32 rounded-full text-xl"
+                    onClick={handlePause}
+                  >
+                    <Pause className="mr-2 h-6 w-6 fill-current" />
+                    Pausar
+                  </Button>
+                ) : (
+                  <Button
+                    size="lg"
+                    className="h-14 w-32 rounded-full text-xl"
+                    onClick={handleResume}
+                  >
+                    <Play className="mr-2 h-6 w-6 fill-current" />
+                    Retomar
+                  </Button>
+                )}
+
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-14 w-14 rounded-full text-muted-foreground hover:text-destructive"
+                  onClick={handleStop}
+                  title="Cancelar"
+                >
+                  <Square className="h-6 w-6 fill-current" />
+                </Button>
+              </>
+            )}
+          </CardFooter>
+        </Card>
       </div>
 
-      <Card className="w-full max-w-md overflow-hidden border-2">
-        <div
-          className="h-1 bg-primary transition-all duration-1000 ease-linear"
-          style={{ width: `${getProgress()}%` }}
-        />
-        <CardHeader className="pb-2 text-center">
-          <div className="text-8xl font-bold tracking-tighter tabular-nums text-primary">
-            {formatTime(timeLeft)}
-          </div>
-          <p className="text-muted-foreground font-medium uppercase tracking-widest">
-            {status === 'idle'
-              ? 'Pronto para iniciar'
-              : status === 'paused'
-              ? 'Pausado'
-              : mode === 'focus'
-              ? 'Focando'
-              : 'Descansando'}
-          </p>
-        </CardHeader>
-
-        <CardContent className="space-y-6">
-          {status === 'idle' && mode === 'focus' && (
-            <Form {...form}>
-              <form id="timer-form" onSubmit={form.handleSubmit(handleStart)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormControl>
-                        <Input
-                          placeholder="No que você vai trabalhar?"
-                          className="text-center text-lg h-12"
-                          autoComplete="off"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </form>
-            </Form>
-          )}
-
-          {status !== 'idle' && mode === 'focus' && currentSessionDescription && (
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground">Trabalhando em:</p>
-              <p className="text-lg font-medium">{currentSessionDescription}</p>
-            </div>
-          )}
-        </CardContent>
-
-        <CardFooter className="flex justify-center gap-4 pb-8">
-          {status === 'idle' ? (
-            <Button
-              size="lg"
-              className="h-14 w-32 rounded-full text-xl shadow-lg"
-              form={mode === 'focus' ? 'timer-form' : undefined}
-              onClick={mode !== 'focus' ? () => handleStart({ description: '' }) : undefined}
-            >
-              <Play className="mr-2 h-6 w-6 fill-current" />
-              Iniciar
-            </Button>
-          ) : (
-            <>
-              {status === 'running' ? (
-                <Button
-                  size="lg"
-                  variant="secondary"
-                  className="h-14 w-32 rounded-full text-xl"
-                  onClick={handlePause}
-                >
-                  <Pause className="mr-2 h-6 w-6 fill-current" />
-                  Pausar
-                </Button>
-              ) : (
-                <Button size="lg" className="h-14 w-32 rounded-full text-xl" onClick={handleResume}>
-                  <Play className="mr-2 h-6 w-6 fill-current" />
-                  Retomar
-                </Button>
-              )}
-
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-14 w-14 rounded-full text-muted-foreground hover:text-destructive"
-                onClick={handleStop}
-                title="Cancelar"
-              >
-                <Square className="h-6 w-6 fill-current" />
-              </Button>
-            </>
-          )}
-        </CardFooter>
-      </Card>
-    </div>
+      {visualAlertContent && (
+        <VisualAlert content={visualAlertContent} onClose={() => setVisualAlertContent(null)} />
+      )}
+    </>
   );
 }
 
