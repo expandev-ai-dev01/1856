@@ -32,7 +32,7 @@ function SessionList({ sessions, onDeleteClick }: SessionListProps) {
             <div className="flex items-center justify-between p-4 sm:p-6">
               <div className="space-y-1.5">
                 <h4 className="font-semibold leading-none tracking-tight">
-                  {session.taskDescription}
+                  {session.sessionDescription || 'Sessão de Foco'}
                 </h4>
                 <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-muted-foreground">
                   <div className="flex items-center gap-1.5">

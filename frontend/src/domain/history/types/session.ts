@@ -3,7 +3,7 @@ import { z } from 'zod';
 // Schema matching the backend API response
 export const sessionSchema = z.object({
   id: z.string().uuid(),
-  taskDescription: z.string(),
+  sessionDescription: z.string().optional(),
   startTimestamp: z.string().datetime(),
   durationMinutes: z.number().int().positive(),
 });

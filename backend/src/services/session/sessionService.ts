@@ -39,7 +39,7 @@ export async function createSession(userId: number, data: CreateSessionRequest):
   const newSession: Session = {
     sessionId: randomUUID(),
     userId,
-    taskDescription: data.taskDescription,
+    sessionDescription: data.sessionDescription || '',
     startTimestamp: new Date(data.startTimestamp),
     durationMinutes: data.durationMinutes,
   };

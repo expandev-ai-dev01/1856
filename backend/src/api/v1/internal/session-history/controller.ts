@@ -8,7 +8,7 @@ import * as service from '@/services/session';
  */
 export const createSessionSchema = z.object({
   body: z.object({
-    taskDescription: z.string().max(255),
+    sessionDescription: z.string().max(100).optional(),
     startTimestamp: z.string().datetime(),
     durationMinutes: z.number().int().positive(),
   }),
@@ -47,7 +47,7 @@ export async function getHistory(req: Request, res: Response, next: NextFunction
  *
  * @apiDescription Records a new completed Pomodoro session
  *
- * @apiParam {String} taskDescription Description of the task (max 255 chars)
+ * @apiParam {String} [sessionDescription] Description of the session (max 100 chars)
  * @apiParam {String} startTimestamp ISO 8601 datetime string
  * @apiParam {Number} durationMinutes Duration in minutes (positive integer)
  *

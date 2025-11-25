@@ -21,7 +21,7 @@ export const sessionService = {
    * Creates a new session entry (used by Timer feature)
    */
   async createEntry(entry: {
-    taskDescription: string;
+    sessionDescription?: string;
     startTimestamp: string;
     durationMinutes: number;
   }): Promise<Session> {
